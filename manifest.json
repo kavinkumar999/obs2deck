@@ -1,0 +1,10 @@
+{
+  "id": "obs2deck",
+  "name": "obs2deck",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Present any note as a deckrun slide deck. Every note gets a local URL; press a hotkey to open it.",
+  "author": "Kavin Kumar",
+  "authorUrl": "https://github.com/kavinkumar999",
+  "isDesktopOnly": true
+}

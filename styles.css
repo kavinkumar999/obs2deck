@@ -1,0 +1,7 @@
+/* obs2deck — plugin styles (status bar item) */
+.obs2deck-status {
+  cursor: pointer;
+}
+.obs2deck-status.is-running {
+  color: var(--text-accent);
+}
