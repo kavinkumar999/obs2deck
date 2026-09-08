@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- New setting "Lines per slide" (6 to 30, default 10). Replaces the hardcoded
+  10-line cap that decided when a slide is split at `###` or paginated as
+  "(cont. 2)". Changes apply to the next deck request without restarting the
+  server. Also exposed as `maxSlideLines` on `convertNote`, `convertMany`
+  and `DeckServer` options for library users.
+
 ## 0.1.0
 
 First release.

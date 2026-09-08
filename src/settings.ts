@@ -9,7 +9,12 @@ export interface Obs2DeckSettings {
   transition: string;
   autoStart: boolean;
   openInBrowser: boolean;
+  /** Visible lines a slide may hold before it is split at H3 or paginated. */
+  maxSlideLines: number;
 }
+
+export const MIN_SLIDE_LINES = 6;
+export const MAX_SLIDE_LINES_SETTING = 30;
 
 export const DEFAULT_SETTINGS: Obs2DeckSettings = {
   port: 7890,
@@ -18,6 +23,7 @@ export const DEFAULT_SETTINGS: Obs2DeckSettings = {
   transition: "slide",
   autoStart: true,
   openInBrowser: true,
+  maxSlideLines: 10,
 };
 
 export class Obs2DeckSettingTab extends PluginSettingTab {
@@ -73,6 +79,23 @@ export class Obs2DeckSettingTab extends PluginSettingTab {
     dropdown("Default theme", "theme", THEME_IDS);
     dropdown("Default template", "template", TEMPLATE_IDS);
     dropdown("Default transition", "transition", TRANSITION_IDS);
+
+    new Setting(containerEl)
+      .setName("Lines per slide")
+      .setDesc(
+        `A slide body over this many visible lines is split at ### headings, or paginated as "(cont. 2)". ` +
+          "Table rows, list items, callout lines and code lines all count. Takes effect on the next deck load.",
+      )
+      .addSlider((sl) =>
+        sl
+          .setLimits(MIN_SLIDE_LINES, MAX_SLIDE_LINES_SETTING, 1)
+          .setValue(s.maxSlideLines)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            s.maxSlideLines = v;
+            await this.plugin.saveSettings();
+          }),
+      );
 
     new Setting(containerEl)
       .setName("Server")

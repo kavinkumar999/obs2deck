@@ -104,6 +104,7 @@ export default class Obs2DeckPlugin extends Plugin {
     this.server = new DeckServer(new VaultNoteSource(this), {
       port: s.port,
       defaults: { theme: s.theme, template: s.template, transition: s.transition },
+      maxSlideLines: s.maxSlideLines,
       log: (m) => console.log(m),
     });
     try {
@@ -194,5 +195,6 @@ export default class Obs2DeckPlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.server?.setMaxSlideLines(this.settings.maxSlideLines);
   }
 }

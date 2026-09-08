@@ -31,6 +31,8 @@ export interface ServerOptions {
   port: number;
   host?: string;
   defaults: ServerDefaults;
+  /** Visible lines per slide before splitting. Default 10. */
+  maxSlideLines?: number;
   log?: (msg: string) => void;
 }
 
@@ -127,10 +129,17 @@ function route(pathname: string, idx: Index): Route {
 
 export type DeckMode = "single" | "links" | "dir";
 
-async function deckMarkdown(source: NoteSource, idx: Index, target: NoteRef | FolderRef, mode: DeckMode, reveal: boolean): Promise<string> {
+async function deckMarkdown(
+  source: NoteSource,
+  idx: Index,
+  target: NoteRef | FolderRef,
+  mode: DeckMode,
+  reveal: boolean,
+  maxSlideLines?: number,
+): Promise<string> {
   if ("base" in target && mode === "single") {
     const text = await source.read(target.rel);
-    return renderSlides(convertNote(text, { relPath: target.rel, reveal, relatedSlide: true }).slides);
+    return renderSlides(convertNote(text, { relPath: target.rel, reveal, relatedSlide: true, maxSlideLines }).slides);
   }
   let order: NoteRef[];
   if (mode === "dir" || !("base" in target)) {
@@ -146,7 +155,7 @@ async function deckMarkdown(source: NoteSource, idx: Index, target: NoteRef | Fo
   }
   const notes = [];
   for (const n of order) notes.push({ text: await source.read(n.rel), relPath: n.rel });
-  return convertMany(notes, reveal);
+  return convertMany(notes, reveal, maxSlideLines);
 }
 
 const reloadScript = (rel: string) => `
@@ -219,6 +228,11 @@ function stream(res: ServerResponse, file: string) {
 export class DeckServer {
   private server: Server | null = null;
   readonly host: string;
+
+  /** Change the per-slide line budget without restarting; applies to the next request. */
+  setMaxSlideLines(n: number | undefined) {
+    this.opts.maxSlideLines = n;
+  }
 
   constructor(private source: NoteSource, private opts: ServerOptions) {
     this.host = opts.host ?? "127.0.0.1";
@@ -316,7 +330,7 @@ export class DeckServer {
       const mode: DeckMode = "folder" in r ? "dir" : ((q.get("mode") as DeckMode) || "single");
       if ("folder" in r && q.get("mode") !== "dir") return send(res, 200, "text/html; charset=utf-8", listing(idx, r.folder.rel));
 
-      const md = await deckMarkdown(this.source, idx, target, mode, !!q.get("reveal"));
+      const md = await deckMarkdown(this.source, idx, target, mode, !!q.get("reveal"), this.opts.maxSlideLines);
       if (q.get("raw")) return send(res, 200, "text/markdown; charset=utf-8", md);
       const d = this.opts.defaults;
       const html = renderDeckHtml(md, {

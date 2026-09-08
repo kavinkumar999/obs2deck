@@ -50,6 +50,8 @@ export interface ConvertOptions {
   reveal?: boolean;
   /** Append a "Related notes" slide (single-note decks only). */
   relatedSlide?: boolean;
+  /** Visible lines a slide may hold before it is split at H3 or paginated. Default MAX_SLIDE_LINES. */
+  maxSlideLines?: number;
 }
 
 export interface Frontmatter {
@@ -252,11 +254,11 @@ function chunkBlocks(lines: string[]): string[][] {
 }
 
 /** Cut an over-long slide body into continuation slides sharing a heading. */
-function paginate(heading: string, body: string[]): string[][] {
+function paginate(heading: string, body: string[], max: number): string[][] {
   const pages: string[][] = [];
   let cur: string[] = [];
   for (const block of chunkBlocks(body)) {
-    if (cur.length && countVisible(cur) + countVisible(block) > MAX_SLIDE_LINES) {
+    if (cur.length && countVisible(cur) + countVisible(block) > max) {
       pages.push(cur);
       cur = [];
     }
@@ -267,7 +269,7 @@ function paginate(heading: string, body: string[]): string[][] {
 }
 
 /** Long H2 slide -> intro slide + one slide per H3. */
-function splitBySubheadings(h2: string, body: string[]): string[][] {
+function splitBySubheadings(h2: string, body: string[], max: number): string[][] {
   const sections: string[][] = [[]];
   let inFence = false;
   for (const line of body) {
@@ -277,13 +279,13 @@ function splitBySubheadings(h2: string, body: string[]): string[][] {
   }
   const slides: string[][] = [];
   const intro = cleanSlide(sections[0]);
-  if (intro.length) slides.push(...finalizeSlide(h2, intro));
+  if (intro.length) slides.push(...finalizeSlide(h2, intro, max));
   for (const sec of sections.slice(1)) {
     const subHeading = sec[0];
     const subBody = cleanSlide(sec.slice(1));
     const combined = `${headingText(h2)} · ${headingText(subHeading)}`;
     const subH2 = `## ${codePoints(combined) <= MAX_TITLE_LEN ? combined : headingText(subHeading)}`;
-    slides.push(...finalizeSlide(subH2, subBody));
+    slides.push(...finalizeSlide(subH2, subBody, max));
   }
   return slides;
 }
@@ -300,19 +302,19 @@ function layoutImages(body: string[]): string[] {
   return body;
 }
 
-function finalizeSlide(heading: string, body: string[]): string[][] {
+function finalizeSlide(heading: string, body: string[], max: number): string[][] {
   body = cleanSlide([...body]);
-  if (countVisible(body) <= MAX_SLIDE_LINES) {
+  if (countVisible(body) <= max) {
     body = layoutImages(body);
     return body.length ? [[heading, "", ...body]] : [[heading]];
   }
   if (body.some((l) => headingLevel(l) === 3) && headingLevel(heading) === 2) {
-    return splitBySubheadings(heading, body);
+    return splitBySubheadings(heading, body, max);
   }
-  return paginate(heading, body);
+  return paginate(heading, body, max);
 }
 
-function buildSlides(bodyLines: string[], meta: Frontmatter, relPath: string): string[][] {
+function buildSlides(bodyLines: string[], meta: Frontmatter, relPath: string, max: number): string[][] {
   const rawSlides: string[][] = [[]];
   let inFence = false;
   let title: string | null = null;
@@ -353,17 +355,17 @@ function buildSlides(bodyLines: string[], meta: Frontmatter, relPath: string): s
   if (meta.tags?.length) subtitle.push(meta.tags.map((t) => `\`#${t}\``).join(" · "));
   subtitle.push(`*${relPath}*`);
   slides.push([titleLine, "", ...subtitle, ...(lead.length ? ["", ...lead] : [])]);
-  if (countVisible(slides[0]) > MAX_SLIDE_LINES + 2) {
+  if (countVisible(slides[0]) > max + 2) {
     slides[0] = [titleLine, "", ...subtitle];
-    slides.push(...finalizeSlide("## Overview", lead));
+    slides.push(...finalizeSlide("## Overview", lead, max));
   }
 
   for (let raw of rawSlides.slice(1)) {
     raw = cleanSlide(raw);
     if (!raw.length) continue;
     const lvl = headingLevel(raw[0]);
-    if (lvl === 1 || lvl === 2) slides.push(...finalizeSlide(raw[0], raw.slice(1)));
-    else slides.push(...paginate("", raw));
+    if (lvl === 1 || lvl === 2) slides.push(...finalizeSlide(raw[0], raw.slice(1), max));
+    else slides.push(...paginate("", raw, max));
   }
   return slides;
 }
@@ -390,6 +392,7 @@ export interface ConvertResult {
 
 export function convertNote(text: string, opts: ConvertOptions): ConvertResult {
   const prefix = opts.assetPrefix ?? "/";
+  const max = Math.max(1, Math.floor(opts.maxSlideLines ?? MAX_SLIDE_LINES));
   const [meta, body] = splitFrontmatter(text.replace(/\r\n/g, "\n"));
   const related: string[] = [];
 
@@ -407,7 +410,7 @@ export function convertNote(text: string, opts: ConvertOptions): ConvertResult {
   let lines = convertCallouts(converted);
   if (opts.reveal) lines = applyReveal(lines);
 
-  const slides = buildSlides(lines, meta, opts.relPath);
+  const slides = buildSlides(lines, meta, opts.relPath, max);
 
   const seen: string[] = [];
   for (const r of related) {
@@ -417,18 +420,18 @@ export function convertNote(text: string, opts: ConvertOptions): ConvertResult {
   }
   const hasRelatedSection = lines.some((l) => headingLevel(l) && headingText(l).toLowerCase().includes("related"));
   if ((opts.relatedSlide ?? true) && seen.length && !hasRelatedSection) {
-    slides.push(["## Related notes", "", ...seen.slice(0, MAX_SLIDE_LINES).map((r) => `- ${r}`)]);
+    slides.push(["## Related notes", "", ...seen.slice(0, max).map((r) => `- ${r}`)]);
   }
   const title = headingText(slides[0][0]);
   return { slides, related: seen, meta, title };
 }
 
 /** Convert several notes into one deck (folder or course mode). */
-export function convertMany(notes: { text: string; relPath: string }[], reveal = false): string {
+export function convertMany(notes: { text: string; relPath: string }[], reveal = false, maxSlideLines?: number): string {
   const single = notes.length === 1;
   const all: string[][] = [];
   for (const n of notes) {
-    all.push(...convertNote(n.text, { relPath: n.relPath, reveal, relatedSlide: single }).slides);
+    all.push(...convertNote(n.text, { relPath: n.relPath, reveal, relatedSlide: single, maxSlideLines }).slides);
   }
   return renderSlides(all);
 }

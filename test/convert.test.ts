@@ -81,6 +81,14 @@ describe("slides", () => {
     expect(slides[slides.length - 1]).toContain("- Caching Strategies");
     expect(slides[slides.length - 1]).toContain("- Load Balancer");
   });
+  it("honours maxSlideLines: a 12-line section paginates at 10 but not at 15", () => {
+    const body = Array.from({ length: 12 }, (_, i) => `- item ${i + 1}`).join("\n\n");
+    const note = `# T\n\n## Long\n\n${body}\n`;
+    const at10 = renderSlides(convertNote(note, { relPath: "T.md" }).slides).split("\n\n---\n\n");
+    const at15 = renderSlides(convertNote(note, { relPath: "T.md", maxSlideLines: 15 }).slides).split("\n\n---\n\n");
+    expect(at10.map((s) => s.split("\n")[0])).toEqual(["# T", "## Long", "## Long (cont. 2)"]);
+    expect(at15.map((s) => s.split("\n")[0])).toEqual(["# T", "## Long"]);
+  });
   it("keeps --- as a break and honours reveal", () => {
     const out = renderSlides(convertNote("# T\n\n## A\n- x\n- y\n\n---\n\nloose text\n", { relPath: "T.md", reveal: true }).slides);
     expect(out).toContain("- x {reveal}\n- y {reveal}");
