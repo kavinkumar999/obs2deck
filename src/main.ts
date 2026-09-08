@@ -105,6 +105,7 @@ export default class Obs2DeckPlugin extends Plugin {
       port: s.port,
       defaults: { theme: s.theme, template: s.template, transition: s.transition },
       maxSlideLines: s.maxSlideLines,
+      relatedSlide: s.relatedSlide,
       log: (m) => console.log(m),
     });
     try {
@@ -196,5 +197,6 @@ export default class Obs2DeckPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.server?.setMaxSlideLines(this.settings.maxSlideLines);
+    this.server?.setRelatedSlide(this.settings.relatedSlide);
   }
 }

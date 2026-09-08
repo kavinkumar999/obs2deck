@@ -89,6 +89,13 @@ describe("slides", () => {
     expect(at10.map((s) => s.split("\n")[0])).toEqual(["# T", "## Long", "## Long (cont. 2)"]);
     expect(at15.map((s) => s.split("\n")[0])).toEqual(["# T", "## Long"]);
   });
+  it("omits the Related notes slide when relatedSlide is false", () => {
+    const note = "# T\n\n## A\nsee [[Other]] and [[Third]]\n";
+    const on = renderSlides(convertNote(note, { relPath: "T.md" }).slides);
+    const off = renderSlides(convertNote(note, { relPath: "T.md", relatedSlide: false }).slides);
+    expect(on).toContain("## Related notes");
+    expect(off).not.toContain("## Related notes");
+  });
   it("keeps --- as a break and honours reveal", () => {
     const out = renderSlides(convertNote("# T\n\n## A\n- x\n- y\n\n---\n\nloose text\n", { relPath: "T.md", reveal: true }).slides);
     expect(out).toContain("- x {reveal}\n- y {reveal}");

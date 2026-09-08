@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- New setting "Append Related notes slide" (default on). Turn it off to stop
+  the converter from adding an auto-generated slide of the note's wikilinks
+  at the end of single-note decks. Applies without a server restart. Also
+  exposed as `relatedSlide` on `convertMany` and `DeckServer` options.
+
 ## 0.1.1
 
 - New setting "Lines per slide" (6 to 30, default 10). Replaces the hardcoded

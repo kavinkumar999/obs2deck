@@ -33,6 +33,8 @@ export interface ServerOptions {
   defaults: ServerDefaults;
   /** Visible lines per slide before splitting. Default 10. */
   maxSlideLines?: number;
+  /** Append an auto "Related notes" slide to single-note decks. Default true. */
+  relatedSlide?: boolean;
   log?: (msg: string) => void;
 }
 
@@ -136,10 +138,11 @@ async function deckMarkdown(
   mode: DeckMode,
   reveal: boolean,
   maxSlideLines?: number,
+  relatedSlide = true,
 ): Promise<string> {
   if ("base" in target && mode === "single") {
     const text = await source.read(target.rel);
-    return renderSlides(convertNote(text, { relPath: target.rel, reveal, relatedSlide: true, maxSlideLines }).slides);
+    return renderSlides(convertNote(text, { relPath: target.rel, reveal, relatedSlide, maxSlideLines }).slides);
   }
   let order: NoteRef[];
   if (mode === "dir" || !("base" in target)) {
@@ -155,7 +158,7 @@ async function deckMarkdown(
   }
   const notes = [];
   for (const n of order) notes.push({ text: await source.read(n.rel), relPath: n.rel });
-  return convertMany(notes, reveal, maxSlideLines);
+  return convertMany(notes, reveal, maxSlideLines, relatedSlide);
 }
 
 const reloadScript = (rel: string) => `
@@ -232,6 +235,11 @@ export class DeckServer {
   /** Change the per-slide line budget without restarting; applies to the next request. */
   setMaxSlideLines(n: number | undefined) {
     this.opts.maxSlideLines = n;
+  }
+
+  /** Toggle the auto "Related notes" slide without restarting; applies to the next request. */
+  setRelatedSlide(on: boolean) {
+    this.opts.relatedSlide = on;
   }
 
   constructor(private source: NoteSource, private opts: ServerOptions) {
@@ -330,7 +338,7 @@ export class DeckServer {
       const mode: DeckMode = "folder" in r ? "dir" : ((q.get("mode") as DeckMode) || "single");
       if ("folder" in r && q.get("mode") !== "dir") return send(res, 200, "text/html; charset=utf-8", listing(idx, r.folder.rel));
 
-      const md = await deckMarkdown(this.source, idx, target, mode, !!q.get("reveal"), this.opts.maxSlideLines);
+      const md = await deckMarkdown(this.source, idx, target, mode, !!q.get("reveal"), this.opts.maxSlideLines, this.opts.relatedSlide ?? true);
       if (q.get("raw")) return send(res, 200, "text/markdown; charset=utf-8", md);
       const d = this.opts.defaults;
       const html = renderDeckHtml(md, {

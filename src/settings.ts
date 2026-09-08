@@ -11,6 +11,8 @@ export interface Obs2DeckSettings {
   openInBrowser: boolean;
   /** Visible lines a slide may hold before it is split at H3 or paginated. */
   maxSlideLines: number;
+  /** Append an auto-generated "Related notes" slide listing the note's wikilinks. */
+  relatedSlide: boolean;
 }
 
 export const MIN_SLIDE_LINES = 6;
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Obs2DeckSettings = {
   autoStart: true,
   openInBrowser: true,
   maxSlideLines: 10,
+  relatedSlide: true,
 };
 
 export class Obs2DeckSettingTab extends PluginSettingTab {
@@ -95,6 +98,16 @@ export class Obs2DeckSettingTab extends PluginSettingTab {
             s.maxSlideLines = v;
             await this.plugin.saveSettings();
           }),
+      );
+
+    new Setting(containerEl)
+      .setName("Append \"Related notes\" slide")
+      .setDesc("Add a final slide listing the notes this note links to. Skipped when the note already has a heading containing \"related\". Applies to the next deck load.")
+      .addToggle((t) =>
+        t.setValue(s.relatedSlide).onChange(async (v) => {
+          s.relatedSlide = v;
+          await this.plugin.saveSettings();
+        }),
       );
 
     new Setting(containerEl)

@@ -427,11 +427,11 @@ export function convertNote(text: string, opts: ConvertOptions): ConvertResult {
 }
 
 /** Convert several notes into one deck (folder or course mode). */
-export function convertMany(notes: { text: string; relPath: string }[], reveal = false, maxSlideLines?: number): string {
+export function convertMany(notes: { text: string; relPath: string }[], reveal = false, maxSlideLines?: number, relatedSlide = true): string {
   const single = notes.length === 1;
   const all: string[][] = [];
   for (const n of notes) {
-    all.push(...convertNote(n.text, { relPath: n.relPath, reveal, relatedSlide: single, maxSlideLines }).slides);
+    all.push(...convertNote(n.text, { relPath: n.relPath, reveal, relatedSlide: relatedSlide && single, maxSlideLines }).slides);
   }
   return renderSlides(all);
 }
