@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: Obs2DeckSettings = {
   transition: "slide",
   autoStart: true,
   openInBrowser: true,
-  maxSlideLines: 10,
+  maxSlideLines: 15,
   relatedSlide: true,
 };
 

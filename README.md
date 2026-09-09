@@ -79,7 +79,7 @@ and `body` fonts, `reveal=1`, `raw=1`. Defaults are set in the plugin settings.
 | `# H1` | title slide with tags and note path; later H1s become section slides |
 | Content before the first `##` | stays on the title slide (an `[!abstract]` callout works well); moves to an "Overview" slide if long |
 | `## H2` | one slide each |
-| Long slide (over the "Lines per slide" setting, default 10) | split at `### H3` into `H2 · H3` slides, then paginated as "(cont. 2)". Table rows, list items, callout lines and code lines all count; blank lines do not |
+| Long slide (over the "Lines per slide" setting, default 15) | split at `### H3` into `H2 · H3` slides, then paginated as "(cont. 2)". Table rows, list items, callout lines and code lines all count; blank lines do not |
 | `---` | slide break; `***` and `___` stay as rules |
 | `![[img.png]]`, `[[img.png\|"caption"]]` | standard images; a lone image on a slide gets deckrun's text-left / image-right split |
 | `[[Note]]`, `[[Note\|alias]]`, `[[Note#Heading]]` | bold text; a "Related notes" slide is appended unless the note already has a Related section or the setting is off |
@@ -92,7 +92,7 @@ and `body` fonts, `reveal=1`, `raw=1`. Defaults are set in the plugin settings.
 ## Settings
 
 Port, auto-start, open-in-browser (off copies the URL instead), default theme,
-template, transition, lines per slide (6 to 30, default 10; raise it if your
+template, transition, lines per slide (6 to 30, default 15; raise it if your
 notes keep getting "(cont. 2)" slides), an "Append Related notes slide" toggle,
 and a start/stop button for the server.
 

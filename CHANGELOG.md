@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- "Lines per slide" plugin default raised from 10 to 15 (range stays 6 to 30).
+  Existing installs that already saved a value are unaffected. The library
+  constant `MAX_SLIDE_LINES` used when no option is passed stays 10.
+
 ## 0.1.2
 
 - New setting "Append Related notes slide" (default on). Turn it off to stop
