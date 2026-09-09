@@ -81,7 +81,7 @@ and `body` fonts, `reveal=1`, `raw=1`. Defaults are set in the plugin settings.
 | `## H2` | one slide each |
 | Long slide (over the "Lines per slide" setting, default 15) | split at `### H3` into `H2 · H3` slides, then paginated as "(cont. 2)". Table rows, list items, callout lines and code lines all count; blank lines do not |
 | `---` | slide break; `***` and `___` stay as rules |
-| `![[img.png]]`, `[[img.png\|"caption"]]` | standard images; a lone image on a slide gets deckrun's text-left / image-right split |
+| `![[img.png]]`, `[[img.png\|"caption"]]` | standard images; a bare name is found anywhere in the vault like Obsidian does; a lone image on a slide gets deckrun's text-left / image-right split |
 | `[[Note]]`, `[[Note\|alias]]`, `[[Note#Heading]]` | bold text; a "Related notes" slide is appended unless the note already has a Related section or the setting is off |
 | `![[Other Note]]` | pointer line "See note: Other Note" |
 | `> [!tip] Title` and other callouts | blockquote with a bold label such as `🔥 Tip: Title` |

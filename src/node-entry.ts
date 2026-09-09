@@ -3,5 +3,5 @@ export { convertNote, convertMany, renderSlides, outgoingLinks, splitFrontmatter
 export { slugify, slugPath, similarity, naturalCompare } from "./convert/slug";
 export { FsNoteSource } from "./server/source";
 export type { NoteSource } from "./server/source";
-export { DeckServer } from "./server/server";
+export { DeckServer, assetByName } from "./server/server";
 export { renderDeckHtml, slideCount, THEME_IDS, TEMPLATE_IDS, TRANSITION_IDS } from "./render";

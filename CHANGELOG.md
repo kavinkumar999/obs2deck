@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+- Fix: images embedded by bare file name (`![[photo.png]]`, the form Obsidian
+  creates when pasting) now load in decks. The server falls back to finding the
+  file anywhere in the vault by its name, preferring the shortest path, the same
+  rule Obsidian uses. Notes and files under `.obsidian`, `.git`, `.trash` are
+  never served this way.
+
 ## 0.1.3
 
 - "Lines per slide" plugin default raised from 10 to 15 (range stays 6 to 30).

@@ -15,7 +15,7 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "http";
 import { createReadStream, promises as fs } from "fs";
-import { extname, relative, resolve, sep } from "path";
+import { basename, extname, join, relative, resolve, sep } from "path";
 import type { NoteSource } from "./source";
 import { convertMany, convertNote, outgoingLinks, renderSlides } from "../convert/convert";
 import { naturalCompare, similarity, slugPath, slugify, stripNumericPrefix } from "../convert/slug";
@@ -215,6 +215,52 @@ async function vaultFile(basePath: string, pathname: string): Promise<string | n
   }
 }
 
+/**
+ * Obsidian resolves `![[photo.png]]` by searching the whole vault for a file with
+ * that name. The converter emits `/photo.png`, which only exists at the vault root
+ * when the note author wrote a full path. This fallback finds the file by basename,
+ * preferring the shortest path when several match (Obsidian's "shortest path" rule).
+ * The vault walk is cached briefly so a deck with many images costs one scan.
+ */
+const ASSET_CACHE_MS = 5000;
+const assetIndexCache = new Map<string, { at: number; byName: Map<string, string[]> }>();
+
+async function assetIndex(basePath: string): Promise<Map<string, string[]>> {
+  const hit = assetIndexCache.get(basePath);
+  if (hit && Date.now() - hit.at < ASSET_CACHE_MS) return hit.byName;
+  const byName = new Map<string, string[]>();
+  const walk = async (dir: string) => {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of ents) {
+      if (SKIP.has(ent.name) || ent.name.startsWith(".")) continue;
+      const full = join(dir, ent.name);
+      if (ent.isDirectory()) await walk(full);
+      else if (!ent.name.endsWith(".md")) {
+        const list = byName.get(ent.name.toLowerCase()) ?? [];
+        list.push(full);
+        byName.set(ent.name.toLowerCase(), list);
+      }
+    }
+  };
+  await walk(basePath);
+  assetIndexCache.set(basePath, { at: Date.now(), byName });
+  return byName;
+}
+
+/** Resolve a bare or wrong-folder asset request to a real vault file, or null. */
+export async function assetByName(basePath: string, pathname: string): Promise<string | null> {
+  const name = basename(pathname.replace(/^\/+/, "")).toLowerCase();
+  if (!name || name.endsWith(".md")) return null;
+  const matches = (await assetIndex(basePath)).get(name);
+  if (!matches?.length) return null;
+  return [...matches].sort((a, b) => a.length - b.length || a.localeCompare(b))[0];
+}
+
 function send(res: ServerResponse, code: number, type: string, body: string) {
   res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store" });
   res.end(body);
@@ -319,6 +365,10 @@ export class DeckServer {
       }
       const file = await vaultFile(this.source.basePath, pathname);
       if (file && !pathname.endsWith(".md")) return stream(res, file);
+      if (!pathname.endsWith(".md") && extname(pathname)) {
+        const byName = await assetByName(this.source.basePath, pathname);   // ![[photo.png]] written without its folder
+        if (byName) return stream(res, byName);
+      }
 
       const idx = await buildIndex(this.source);
       const r = route(pathname, idx);

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
+import { assetByName } from "../src/server/server";
 import { convertNote, renderSlides, splitFrontmatter, convertInline, convertCallouts, outgoingLinks } from "../src/convert/convert";
 import { slugify, slugPath, naturalCompare, similarity } from "../src/convert/slug";
 
@@ -100,6 +102,29 @@ describe("slides", () => {
     const out = renderSlides(convertNote("# T\n\n## A\n- x\n- y\n\n---\n\nloose text\n", { relPath: "T.md", reveal: true }).slides);
     expect(out).toContain("- x {reveal}\n- y {reveal}");
     expect(out.split("\n\n---\n\n")).toHaveLength(3);
+  });
+});
+
+describe("asset resolution", () => {
+  const vault = mkdtempSync(join(tmpdir(), "obs2deck-vault-"));
+  mkdirSync(join(vault, "LLD", "_resources"), { recursive: true });
+  mkdirSync(join(vault, "Deep", "er", "_resources"), { recursive: true });
+  mkdirSync(join(vault, ".obsidian"), { recursive: true });
+  writeFileSync(join(vault, "LLD", "_resources", "robot.png"), "x");
+  writeFileSync(join(vault, "Deep", "er", "_resources", "robot.png"), "y");
+  writeFileSync(join(vault, ".obsidian", "hidden.png"), "z");
+  writeFileSync(join(vault, "LLD", "note.md"), "# n");
+
+  it("finds a bare image name anywhere in the vault, preferring the shortest path", async () => {
+    expect(await assetByName(vault, "/robot.png")).toBe(join(vault, "LLD", "_resources", "robot.png"));
+  });
+  it("also rescues a wrong-folder path by its basename", async () => {
+    expect(await assetByName(vault, "/HLD/_resources/robot.png")).toBe(join(vault, "LLD", "_resources", "robot.png"));
+  });
+  it("never serves notes or files under skipped folders, and returns null for unknown names", async () => {
+    expect(await assetByName(vault, "/note.md")).toBeNull();
+    expect(await assetByName(vault, "/hidden.png")).toBeNull();
+    expect(await assetByName(vault, "/missing.png")).toBeNull();
   });
 });
 
